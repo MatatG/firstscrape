@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Room Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        #urlInput {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+        }
+        #scrapeButton {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #scrapeButton:disabled {
+            background: #cccccc;
+        }
+        #downloadButton {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: none;
+        }
+        #results {
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            background: #fff;
+            border-left: 3px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hotel Room Scraper</h1>
+        <input type="text" id="urlInput" placeholder="Enter hotel website URL">
+        <button id="scrapeButton">Start Scraping</button>
+        <button id="downloadButton">Download CSV</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let lastResults = '';
+        
+        document.getElementById('scrapeButton').addEventListener('click', async () => {
+            const url = document.getElementById('urlInput').value;
+            const resultsDiv = document.getElementById('results');
+            const scrapeButton = document.getElementById('scrapeButton');
+            const downloadButton = document.getElementById('downloadButton');
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            scrapeButton.disabled = true;
+            resultsDiv.innerHTML = 'Scraping in progress...';
+            downloadButton.style.display = 'none';
+            
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultsDiv.innerHTML = `Error: ${data.error}`;
+                    return;
+                }
+                
+                // Display logs and thinking steps
+                resultsDiv.innerHTML = '';
+                data.logs.forEach(log => {
+                    resultsDiv.innerHTML += `<div class="log-entry">${log}</div>`;
+                });
+                
+                if (data.results && data.results.length > 0) {
+                    lastResults = data.results.join('\n');
+                    downloadButton.style.display = 'inline-block';
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `Error: ${error.message}`;
+            } finally {
+                scrapeButton.disabled = false;
+            }
+        });
+        
+        document.getElementById('downloadButton').addEventListener('click', () => {
+            if (lastResults) {
+                window.location.href = `/download-csv?data=${encodeURIComponent(lastResults)}`;
+            }
+        });
+    </script>
+</body>
+</html> 
